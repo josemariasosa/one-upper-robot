@@ -1,0 +1,12 @@
+{
+    "files.exclude": {
+        "**/__pycache__": true
+    },
+    "files.associations": {
+        ".coveragerc": "toml"
+    },
+    "vyper.command": "vyper -p ./lib/github -p ./lib/pypi",
+    "cSpell.words": [
+        "pcaversaccio"
+    ]
+}

@@ -1,0 +1,28 @@
+[project]
+src = "src"
+out = "out"
+explorer_api_key = "${ETHERSCAN_KEY}"
+dot_env = ".env"
+name = "one-upper-robot"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = ["pcaversaccio/snekmate@0.1.0"]
+
+[networks.pyevm]
+is_zksync = false
+
+[networks.polygon-fork]
+url = "https://polygon-mainnet.infura.io/v3/${INFURA_KEY}"
+chain_id = 137
+fork = true
+block_identifier = 68322843 # 2025-02-24
+
+[networks.polygon]
+url = "https://polygon-mainnet.infura.io/v3/${INFURA_KEY}"
+chain_id = 137
+fork = true
+block_identifier = 68322843 # 2025-02-24
+explorer_uri = "https://api.etherscan.io/api"
+explorer_type = "etherscan"

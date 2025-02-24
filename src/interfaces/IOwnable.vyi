@@ -1,0 +1,14 @@
+@view
+@external
+def owner() -> address:
+    ...
+
+
+@external
+def transfer_ownership(new_owner: address):
+    ...
+
+
+@external
+def renounce_ownership():
+    ...
