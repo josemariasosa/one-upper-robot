@@ -22,10 +22,6 @@ exports: (
 
 ERC20_IMPL: public(immutable(address))
 QUICKSWAP_ROUTER: public(immutable(address))
-
-# QUICKSWAP_ROUTER: public(
-#     constant(address)
-# ) = 0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff
 MAX_OWNER_SHARE: constant(uint256) = 9_000
 
 
@@ -38,9 +34,10 @@ struct UserToken:
     token: address
     owner_amount: uint256
     liquidity_amount: uint256
+    reclaimed: bool
 
 
-user_tokens: public(HashMap[address, address[100]])
+user_tokens: public(HashMap[address, UserToken[100]])
 user_last_token_index: public(HashMap[address, uint256])
 
 
@@ -98,7 +95,6 @@ def _add_liquidity(
 
 
 @external
-@payable
 def deploy_token(
     name: String[25],
     symbol: String[5],
@@ -107,9 +103,7 @@ def deploy_token(
     version_eip712: String[20],
     total_supply: uint256,
     token_owner: address,
-    # owner_share: uint256,
-    # burn_owner: bool,
-# ) -> (address, uint256):
+    owner_share: uint256,
 ) -> address:
     """
     @notice Deploys a new token and adds initial liquidity
@@ -119,46 +113,63 @@ def deploy_token(
     @param name_eip712 The signing domain's name
     @param version_eip712 Version of the signing domain
     @param total_supply Initial total supply
-# @param owner_share Percentage of tokens for owner (in bps)
-# @param burn_owner Whether to burn owner privileges
+    @param owner_share Percentage of tokens for owner (in bps)
     @return Address of new token and amount of LP tokens
     """
 
     ownable._check_owner()
 
-    # assert msg.value > 0, "POL amount must be greater than 0"
-    # assert owner_share < MAX_OWNER_SHARE, "Owner share must be lower than 90%"
+    assert owner_share < MAX_OWNER_SHARE, "Owner share must be lower than 90%"
     assert total_supply > 0, "Total supply must be greater than 0"
+
     # deploy the token with the metadata given
     new_token: address = self._create_token(
         name, symbol, decimals, name_eip712, version_eip712
     )
 
+    # Calculate owner's share
+    owner_amount: uint256 = total_supply * owner_share // 10_000
+    # Calculate liquidity amount (remaining tokens)
+    liquidity_amount: uint256 = total_supply - owner_amount
+
+    self.user_tokens[token_owner][self.user_last_token_index[token_owner]] = UserToken(
+        token=new_token,
+        owner_amount=owner_amount,
+        liquidity_amount=liquidity_amount,
+        reclaimed=False,
+    )
+    self.user_last_token_index[token_owner] += 1
+
+    log TokenDeployed(new_token, total_supply)
+
     return new_token
 
+@external
+@payable
+def reclaim_token(token_index: uint256, burn_owner: bool) -> uint256:
+    token: UserToken = self.user_tokens[msg.sender][token_index]
+    assert not token.reclaimed, "Token already reclaimed"
+    assert token.owner_amount > 0, "No owner amount to reclaim"
+    self.user_tokens[msg.sender][token_index].reclaimed = True
 
+    # Mint tokens
+    extcall IERC20Extended(token.token).mint(
+        msg.sender, token.owner_amount
+    )  # Mint owner's share
+    extcall IERC20Extended(token.token).mint(
+        self, token.liquidity_amount
+    )  # Mint liquidity tokens to contract
+
+    # Renounce token contract ownership if burn_owner or transfer it to the sender
+    if burn_owner:
+        extcall IOwnable(token.token).renounce_ownership()
+    else:
+        extcall IOwnable(token.token).transfer_ownership(msg.sender)
+
+    return self._add_liquidity(token.token, token.liquidity_amount, msg.value)
+
+@view
+@external
+def token_balance_of(token: address, owner: address) -> uint256:
+    return staticcall IERC20Extended(token).balanceOf(owner)
     
-
-    # # Calculate owner's share
-    # owner_amount: uint256 = total_supply * owner_share // 10_000
-    # # Calculate liquidity amount (remaining tokens)
-    # liquidity_amount: uint256 = total_supply - owner_amount
-
-    # # Mint tokens
-    # extcall IERC20Extended(new_token).mint(
-    #     msg.sender, owner_amount
-    # )  # Mint owner's share
-    # extcall IERC20Extended(new_token).mint(
-    #     self, liquidity_amount
-    # )  # Mint liquidity tokens to contract
-    # log TokenDeployed(new_token, total_supply)
-
-    # # Renounce token contract ownership if burn_owner or transfer it to the sender
-    # if burn_owner:
-    #     extcall IOwnable(new_token).renounce_ownership()
-    # else:
-    #     extcall IOwnable(new_token).transfer_ownership(msg.sender)
-
-    # return new_token, self._add_liquidity(
-    #     new_token, liquidity_amount, msg.value
-    # )
