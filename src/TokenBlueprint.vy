@@ -1,5 +1,5 @@
 # pragma version 0.4.0
-# @license MIT
+# SPDX-License-Identifier: MIT
 
 from pcaversaccio.snekmate.src.snekmate.auth import ownable
 from pcaversaccio.snekmate.src.snekmate.tokens import erc20

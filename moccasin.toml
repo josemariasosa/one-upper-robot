@@ -13,16 +13,24 @@ dependencies = ["pcaversaccio/snekmate@0.1.0"]
 [networks.pyevm]
 is_zksync = false
 
+[networks.contracts]
+uniswap_v2_router = { abi = "UniswapV2Router.vy", deployer_script = "script/deploy_router.py" }
+
 [networks.polygon-fork]
 url = "https://polygon-mainnet.infura.io/v3/${INFURA_KEY}"
 chain_id = 137
 fork = true
 block_identifier = 68322843 # 2025-02-24
 
+[networks.polygon-fork.contracts.uniswap_v2_router]
+address = "0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff"
+
 [networks.polygon]
 url = "https://polygon-mainnet.infura.io/v3/${INFURA_KEY}"
 chain_id = 137
-fork = true
-block_identifier = 68322843 # 2025-02-24
+fork = false
 explorer_uri = "https://api.etherscan.io/api"
 explorer_type = "etherscan"
+
+[extra_data]
+robot_address = "0x9AB490527F7c9E1BbFCB091148908a1fADe30d82"
